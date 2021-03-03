@@ -22,9 +22,9 @@ CircularBuffer::CircularBuffer(int size, int undo_size, int redo_size) {
     head_REDO = 0;
     tail_REDO = 0;
     LOG_MAGNUM_INFO <<
-            "CircularBuffer initialized with capacity of " << size << " plus 1 for the tail marker\n" <<
-            "CircularBuffer initialized undo with capacity of " << undo_size << " plus 1 for the tail marker\n" <<
-            "CircularBuffer initialized redo with capacity of " << redo_size << " plus 1 for the tail marker";
+            "CircularBuffer initialized with capacity of " << size << " plus 1 for the tail marker" << std::endl <<
+            "CircularBuffer initialized undo with capacity of " << undo_size << " plus 1 for the tail marker" << std::endl <<
+            "CircularBuffer initialized redo with capacity of " << redo_size << " plus 1 for the tail marker" << std::endl;
     ;
 }
 
@@ -45,7 +45,7 @@ int CircularBuffer::size() {
 }
 
 void CircularBuffer::add(int n) {
-    LOG_MAGNUM_INFO << "adding " << n;
+    LOG_MAGNUM_INFO << "adding " << n << std::endl;
 
     if (head != tail) {
         if (tail == 0) {
@@ -73,7 +73,7 @@ void CircularBuffer::add(int n) {
 }
 
 void CircularBuffer::undo() {
-    LOG_MAGNUM_INFO << "undo";
+    LOG_MAGNUM_INFO << "undo" << std::endl;
 
     if (head == tail) {
         return;
@@ -107,19 +107,19 @@ void CircularBuffer::undo() {
 
 int CircularBuffer::peek() {
     if (head == tail) {
-        LOG_MAGNUM_INFO << "queue empty, oh noes";
+        LOG_MAGNUM_INFO << "queue empty, oh noes" << std::endl;
         return 0;
     }
 
     int n = buf[head];
     buf[head] = 0; // for illustration
-    LOG_MAGNUM_INFO << "peek " << n;
+    LOG_MAGNUM_INFO << "peek " << n << std::endl;
     return n;
 }
 
 int CircularBuffer::remove() {
     if (head == tail) {
-        LOG_MAGNUM_INFO << "queue empty, oh noes";
+        LOG_MAGNUM_INFO << "queue empty, oh noes" << std::endl;
         return 0;
     }
 
@@ -127,7 +127,7 @@ int CircularBuffer::remove() {
     buf[head] = 0; // for illustration
     head++;
     head %= CBUF_SIZE;
-    LOG_MAGNUM_INFO << "removed " << n;
+    LOG_MAGNUM_INFO << "removed " << n << std::endl;
     return n;
 }
 
