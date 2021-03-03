@@ -3,10 +3,6 @@
 
 class CircularBuffer {
 public:
-    static void println(std::string x);
-
-    static void test();
-
     template<typename ... Args>
     std::string format( const std::string& format, Args ... args );
 
