@@ -28,10 +28,10 @@ extern std::ostream streamFatal;
 
 #define LOG_MAGNUM_INFO LOG_MAGNUM_DEBUG
 
-#define LOG_MAGNUM_DEBUG_FUNCTION(x) LOG_MAGNUM_DEBUG << #x << " = " << (x)
+#define LOG_MAGNUM_DEBUG_FUNCTION(x) LOG_MAGNUM_DEBUG << #x << " = " << (x) << std::endl
 #define LOG_MAGNUM_INFO_FUNCTION(x) LOG_MAGNUM_DEBUG_FUNCTION(x)
-#define LOG_MAGNUM_WARNING_FUNCTION(x) LOG_MAGNUM_WARNING << #x << " = " << (x)
-#define LOG_MAGNUM_ERROR_FUNCTION(x) LOG_MAGNUM_ERROR << #x << " = " << (x)
-#define LOG_MAGNUM_FATAL_FUNCTION(x) LOG_MAGNUM_FATAL << #x << " = " << (x)
+#define LOG_MAGNUM_WARNING_FUNCTION(x) LOG_MAGNUM_WARNING << #x << " = " << (x) << std::endl
+#define LOG_MAGNUM_ERROR_FUNCTION(x) LOG_MAGNUM_ERROR << #x << " = " << (x) << std::endl
+#define LOG_MAGNUM_FATAL_FUNCTION(x) LOG_MAGNUM_FATAL << #x << " = " << (x) << std::endl
 
 #endif //CIRCULARBUFFER_LOG_HPP
