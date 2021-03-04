@@ -1,6 +1,6 @@
-[submodule "Corrade"]
-	path = Corrade
-	url = https://github.com/mgood7123/corrade
 [submodule "googletest"]
 	path = googletest
 	url = https://github.com/google/googletest
+[submodule "corrade"]
+	path = corrade
+	url = https://github.com/mgood7123/corrade

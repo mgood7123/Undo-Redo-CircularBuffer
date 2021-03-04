@@ -14,12 +14,12 @@ set(WITH_TESTSUITE OFF CACHE BOOL "" FORCE)
 set(WITH_RC OFF CACHE BOOL "" FORCE)
 set(BUILD_STATIC OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(Corrade EXCLUDE_FROM_ALL)
+add_subdirectory(corrade EXCLUDE_FROM_ALL)
 
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/Corrade/modules/" ${CMAKE_MODULE_PATH})
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/corrade/modules/" ${CMAKE_MODULE_PATH})
 find_package(Corrade REQUIRED Containers Utility)
 
-include_directories(Corrade/src)
+include_directories(${CORRADE_INCLUDE_DIR})
 include_directories(include)
 
 if(NOT COMMAND testBuilder_build)
