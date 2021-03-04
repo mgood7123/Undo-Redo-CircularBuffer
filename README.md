@@ -13,7 +13,7 @@ git clone --recursive https://github.com/mgood7123/Undo-Redo-CircularBuffer
 ## as a submodule
 
 ```shell script
-git submodule add https://github.com/mgood7123/Undo-Redo-CircularBuffer path/where/Undo Redo Circular Buffer/should/reside/Undo Redo Circular Buffer
+git submodule add https://github.com/mgood7123/Undo-Redo-CircularBuffer path/where/Undo-Redo-CircularBuffer/should/reside/Undo-Redo-CircularBuffer
 git submodule update --init --recursive
 ```
 
