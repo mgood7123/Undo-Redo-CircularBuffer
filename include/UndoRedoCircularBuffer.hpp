@@ -69,10 +69,10 @@ public:
      */
     int remove() const;
 
-    template<typename ... Args> std::string format( const std::string & format, Args ... args );
+    template<typename ... Args> std::string format( const std::string & format, Args ... args ) const;
 
-    std::string toString(rigtorp::SPSCQueue<int> * buf);
+    std::string toString(rigtorp::SPSCQueue<int> * buf) const;
 
-    std::string toString();
+    std::string toString() const;
 };
 #endif // UNDO_REDO_CIRCULAR_BUFFER_H
