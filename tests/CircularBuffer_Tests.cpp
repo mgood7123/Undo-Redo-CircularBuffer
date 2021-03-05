@@ -169,3 +169,22 @@ TEST(CircularBuffer_Core, wrap_around_undo) {
     ASSERT_EQ(a.undo_head, 3);
     ASSERT_EQ(a.undo_tail, 5);
 }
+
+TEST(CircularBuffer_Core, THIS_WILL_BREAK) {
+    CircularBuffer x(50);
+
+    LOG_MAGNUM_DEBUG << x.toString();
+
+    for (int i = 0; i < 50; i++) {
+        x.add(i);
+    }
+
+    LOG_MAGNUM_DEBUG << x.toString();
+
+    for (int i = 0; i < 50; i++) {
+        LOG_MAGNUM_DEBUG << "undoing add " << (49 - i) << std::endl;
+        x.undo();
+    }
+
+    LOG_MAGNUM_DEBUG << x.toString();
+}
