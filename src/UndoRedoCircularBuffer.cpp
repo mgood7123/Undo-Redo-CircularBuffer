@@ -47,7 +47,6 @@ void UndoRedoCircularBuffer::undo() const {
     int * ptr = undo_->front();
     if (ptr == nullptr) return;
     int command = *ptr;
-    LOG_MAGNUM_DEBUG_FUNCTION(command);
     undo_->pop();
     switch (command) {
         case ADD: {
