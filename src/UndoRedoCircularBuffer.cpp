@@ -24,6 +24,23 @@ int UndoRedoCircularBuffer::size() const {
     return main->size();
 }
 
+/*
+[ RUN      ] CircularBuffer_Core.add_multi_then_undo_multi
+add 5
+add 5
+undo add
+undo add
+MAIN:
+   0   0   0
+UNDO:
+   0   0   0   0   0   0
+REDO:
+   1   5   1   5   0   0
+redo add
+add 5
+redo add
+add 5
+ */
 void UndoRedoCircularBuffer::add(int n) const {
     LOG_MAGNUM_DEBUG << "add " << n << std::endl;
     int * ptr = main->front();
