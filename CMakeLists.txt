@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 project(CircularBuffer)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # https://doc.magnum.graphics/corrade/corrade-cmake.html#corrade-cmake-subproject
@@ -20,6 +20,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/corrade/modules/" ${CMAKE_MODULE_PA
 find_package(Corrade REQUIRED Containers Utility)
 
 include_directories(${CORRADE_INCLUDE_DIR})
+include_directories(SPSCQueue/include)
 include_directories(include)
 
 if(NOT COMMAND testBuilder_build)
@@ -27,12 +28,22 @@ if(NOT COMMAND testBuilder_build)
     testBuilder_set_current_working_directory_to_default_binary_directory()
 endif()
 
-testBuilder_add_source(CircularBuffer src/CircularBuffer.cpp)
-testBuilder_add_source(CircularBuffer src/Log.cpp)
-testBuilder_add_source(CircularBuffer src/JniHelpers.cpp)
-testBuilder_add_source(CircularBuffer src/CircularBufferJNI.cpp)
+testBuilder_add_source(CircularBuffer
+        src/CircularBuffer.cpp
+        src/CircularBufferJNI.cpp
+        src/Log.cpp
+        src/JniHelpers.cpp
+)
+testBuilder_add_source(UndoRedoCircularBuffer
+        src/UndoRedoCircularBuffer.cpp
+        src/UndoRedoCircularBufferJNI.cpp
+)
+
 testBuilder_add_library(CircularBuffer Corrade::Containers Corrade::Utility)
+testBuilder_add_library(UndoRedoCircularBuffer CircularBuffer)
+
 testBuilder_build_shared_library(CircularBuffer)
+testBuilder_build_shared_library(UndoRedoCircularBuffer)
 
 # Prevent overriding the parent project's compiler/linker
 # settings on Windows
