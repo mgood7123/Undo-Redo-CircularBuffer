@@ -80,71 +80,32 @@ TEST(CircularBuffer_Core, add_multi) {
     ASSERT_EQ(a.undo_tail, 5);
 }
 
-/*
-[ RUN      ] CircularBuffer_Core.add_multi_then_undo_multi
-CircularBuffer initialized with capacity of 3 plus 1 for the tail marker
-CircularBuffer initialized undo with capacity of 3 plus 1 for the tail marker
-CircularBuffer initialized redo with capacity of 3 plus 1 for the tail marker
-adding 5
-adding 6
-adding 7
-main:
-   t   h
-   5   6   7   (2)
-
-undo:
-   h       t
-   5   6   0   (2)
-
-redo:
-   h
-   0   0   0   (0)
-
-undo
-main:
-   h       t
-   5   6   0   (2)
-
-undo:
-       h   t
-   0   6   0   (1)
-
-redo:
-   h
-   0   0   0   (0)
-
-undo
-main:
-   h   t
-   5   0   0   (1)
-
-undo:
-       h
-   0   0   0   (0)
-
-redo:
-   h
-   0   0   0   (0)
-
-undo
-main:
-   h
-   0   0   0   (0)
-
-undo:
-   h
-   0   0   0   (0)
-
-redo:
-   h
-   0   0   0   (0)
-
-[       OK ] CircularBuffer_Core.add_multi_then_undo_multi (3 ms)
-*/
 TEST(CircularBuffer_Core, add_multi_then_undo_multi) {
     CircularBuffer a(3);
+    ASSERT_EQ(a.buf[0], 0);
+    ASSERT_EQ(a.buf[1], 0);
+    ASSERT_EQ(a.buf[2], 0);
+    ASSERT_EQ(a.main_head, 0);
+    ASSERT_EQ(a.main_tail, 0);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 3);
     a.add(5);
+    ASSERT_EQ(a.buf[0], 5);
+    ASSERT_EQ(a.buf[1], 0);
+    ASSERT_EQ(a.buf[2], 0);
+    ASSERT_EQ(a.main_head, 0);
+    ASSERT_EQ(a.main_tail, 1);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 3);
     a.add(6);
+    LOG_MAGNUM_DEBUG << a.toString();
+    ASSERT_EQ(a.buf[0], 5);
+    ASSERT_EQ(a.buf[1], 6);
+    ASSERT_EQ(a.buf[2], 0);
+    ASSERT_EQ(a.main_head, 0);
+    ASSERT_EQ(a.main_tail, 2);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 4);
     a.add(7);
     LOG_MAGNUM_DEBUG << a.toString();
     ASSERT_EQ(a.buf[0], 5);
@@ -161,8 +122,8 @@ TEST(CircularBuffer_Core, add_multi_then_undo_multi) {
     ASSERT_EQ(a.buf[2], 0);
     ASSERT_EQ(a.main_head, 0);
     ASSERT_EQ(a.main_tail, 2);
-    ASSERT_EQ(a.undo_head, 4);
-    ASSERT_EQ(a.undo_tail, 5);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 4);
     a.undo();
     LOG_MAGNUM_DEBUG << a.toString();
     ASSERT_EQ(a.buf[0], 5);
@@ -170,8 +131,8 @@ TEST(CircularBuffer_Core, add_multi_then_undo_multi) {
     ASSERT_EQ(a.buf[2], 0);
     ASSERT_EQ(a.main_head, 0);
     ASSERT_EQ(a.main_tail, 1);
-    ASSERT_EQ(a.undo_head, 4);
-    ASSERT_EQ(a.undo_tail, 4);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 3);
     a.undo();
     LOG_MAGNUM_DEBUG << a.toString();
     ASSERT_EQ(a.buf[0], 0);
@@ -181,4 +142,30 @@ TEST(CircularBuffer_Core, add_multi_then_undo_multi) {
     ASSERT_EQ(a.main_tail, 0);
     ASSERT_EQ(a.undo_head, 3);
     ASSERT_EQ(a.undo_tail, 3);
+}
+
+TEST(CircularBuffer_Core, wrap_around_undo) {
+    CircularBuffer a(3);
+    a.add(5);
+    a.add(6);
+    a.add(7);
+    LOG_MAGNUM_DEBUG << a.toString();
+    a.add(8);
+    LOG_MAGNUM_DEBUG << a.toString();
+    ASSERT_EQ(a.buf[0], 8);
+    ASSERT_EQ(a.buf[1], 6);
+    ASSERT_EQ(a.buf[2], 7);
+    ASSERT_EQ(a.main_head, 2);
+    ASSERT_EQ(a.main_tail, 1);
+    ASSERT_EQ(a.undo_head, 4);
+    ASSERT_EQ(a.undo_tail, 3);
+    a.undo();
+    LOG_MAGNUM_DEBUG << a.toString();
+    ASSERT_EQ(a.buf[0], 5);
+    ASSERT_EQ(a.buf[1], 6);
+    ASSERT_EQ(a.buf[2], 7);
+    ASSERT_EQ(a.main_head, 1);
+    ASSERT_EQ(a.main_tail, 0);
+    ASSERT_EQ(a.undo_head, 3);
+    ASSERT_EQ(a.undo_tail, 5);
 }

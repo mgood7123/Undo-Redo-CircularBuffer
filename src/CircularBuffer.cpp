@@ -67,30 +67,168 @@ void CircularBuffer::undo() {
         return;
     }
 
-    if (main_tail == main_head - 1) {
+    if (undo_tail == undo_head - 1) {
+        LOG_MAGNUM_DEBUG << 1 << std::endl;
+        buf[main_tail-1] = buf[undo_tail];
+        undo_tail = undo_tail == undo_offset ? (redo_offset-1) : undo_tail - 1;
+        undo_head--;
         main_head--;
-        buf[main_head] = buf[undo_head];
-        buf[undo_head] = 0;
-        undo_head++;
-        undo_head = undo_head == (redo_offset) ? undo_offset : undo_head;
-    } else {
-        if (undo_tail == undo_offset) {}//undo_tail = redo_offset-1;
-        else {
-            if (undo_tail != undo_offset && undo_head == undo_tail) undo_head--;
-            undo_tail--;
-            buf[undo_tail] = 0;
+        if (main_tail == 0) main_tail = main_capacity-1;
+        else main_tail--;
+    } else if (undo_head == undo_offset) {
+        /*
+restore to
+    main:
+       h       t
+       5   6   0   (2)
+
+    undo:
+       h   t
+       5   0   0   (1)
+current
+    main:
+       t   h
+       5   6   7   (2)
+
+    undo:
+       h       t
+       5   6   0   (2)
+         */
+        LOG_MAGNUM_DEBUG << 2 << std::endl;
+        // restore undo head and tail
+        if (main_head != main_tail - 1) {
+            LOG_MAGNUM_DEBUG << 3 << std::endl;
+            undo_tail = undo_tail == undo_offset ? (redo_offset - 1) : (undo_tail - 1);
+            if (undo_head != undo_offset) undo_head--;
+            // restore tail value
+            buf[main_tail] = 0;
+            // head value does not need to be restored
         }
-        // what should we do here?
-        //
-        // main_head--;
-        // buf[main_head] = buf[undo_head];
-        // buf[undo_head] = 0;
-        // undo_head++;
-        // undo_head = undo_head == (redo_offset) ? undo_offset : undo_head;
+        /*
+main:
+   h   t
+   5   0   0   (1)
+
+undo:
+   h
+   0   0   0   (0)
+        */
+        if (main_head == 0) {
+            LOG_MAGNUM_DEBUG << 4 << std::endl;
+            if (main_tail == 1) {
+                LOG_MAGNUM_DEBUG << 5 << std::endl;
+                // restore tail
+                main_tail = 0;
+                // restore tail value
+                buf[main_tail] = 0;
+                buf[undo_tail] = 0;
+                // head value does not need to be restored
+            } else if (main_tail == undo_offset-1) {
+                LOG_MAGNUM_DEBUG << 6 << std::endl;
+                LOG_MAGNUM_DEBUG << toString() << std::endl;
+                /*
+        target
+        main:
+           h       t
+           5   6   0   (2)
+
+        undo:
+           h   t
+           5   0   0   (1)
+                 */
+                if (main_head == 1) {
+                    /*
+        current
+        main:
+           t   h
+           5   6   7   (2)
+
+        undo:
+           h       t
+           5   6   0   (2)
+                     */
+                    buf[main_head + 1] = buf[undo_tail];
+                    main_head--;
+                    main_tail = undo_offset - 1;
+                    undo_tail--;
+                    // restore tail value
+                    buf[main_tail] = 0;
+                    // head value does not need to be restored
+                } else {
+                    /*
+        current
+        main:
+           h       t
+           5   6   0   (2)
+
+        undo:
+           h
+           5   6   0   (0)
+                    */
+                    buf[undo_head + 1] = 0;
+                    main_tail--;
+                    buf[main_tail] = 0;
+                }
+            } else {
+                LOG_MAGNUM_DEBUG << 7 << std::endl;
+                // restore head
+                main_head--;
+                // restore tail
+                main_tail = main_tail == 0 ? (undo_offset - 1) : (main_tail - 1);
+                // restore tail value
+                buf[main_tail] = 0;
+                // head value does not need to be restored
+            }
+        } else {
+            LOG_MAGNUM_DEBUG << 12 << std::endl;
+            LOG_MAGNUM_DEBUG << toString() << std::endl;
+            if (main_tail == main_capacity) {
+                LOG_MAGNUM_DEBUG << 6 << std::endl;
+                /*
+    target
+    main:
+       h       t
+       5   6   0   (2)
+
+    undo:
+       h   t
+       5   0   0   (1)
+
+    current
+    main:
+       t   h
+       0   6   7   (2)
+
+    undo:
+       h   t
+       5   6   0   (1)
+
+                 */
+                buf[main_head + 1] = buf[undo_tail + 1];
+                main_head--;
+                main_tail = undo_offset - 1;
+            } else if (main_tail == 0) {
+                buf[main_tail] = buf[undo_head];
+                main_head--;
+                main_tail = undo_offset - 1;
+                buf[main_tail] = 0;
+            } else {
+                LOG_MAGNUM_DEBUG << 8 << std::endl;
+                // restore tail value
+                buf[main_tail] = 0;
+                // head value does not need to be restored
+                main_tail--;
+            }
+        }
+    } else if (undo_tail != undo_offset) {
+        LOG_MAGNUM_DEBUG << 3 << std::endl;
+        if (undo_tail != undo_offset && undo_head == undo_tail) undo_head--;
+        undo_tail--;
+        buf[undo_tail] = 0;
+        if (main_tail == 0) main_tail = main_capacity-1;
+        else main_tail--;
+        buf[main_tail] = 0;
     }
-    if (main_tail == 0) main_tail = main_capacity-1;
-    else main_tail--;
-    buf[main_tail] = 0; // for illustration
 }
 
 int CircularBuffer::peek() {
