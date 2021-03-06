@@ -43,6 +43,7 @@ public:
     int size() const;
 
     static void push_front(rigtorp::SPSCQueue<int> * buf, const int & value);
+    static void push_back(rigtorp::SPSCQueue<int> * buf, const int & value);
 
     int front() const;
     int back() const;

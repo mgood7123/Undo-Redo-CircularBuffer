@@ -40,11 +40,6 @@ int UndoRedoCircularBuffer::size() const {
     return main->size();
 }
 
-void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, const int & value) {
-    if (buf->size() == buf->capacity()) buf->pop();
-    buf->push(value);
-}
-
 int UndoRedoCircularBuffer::front() const {
     return front(main);
 }
@@ -59,6 +54,27 @@ int UndoRedoCircularBuffer::pop_front() const {
 
 int UndoRedoCircularBuffer::pop_back() const {
     return pop_back(main);
+}
+
+void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, const int & value) {
+    // IMPORTANT: NOT THREAD SAFE -
+    //                  it could be popped leading to a block until data is pushed to it
+    //                      T1 pop(); // size 0
+    //                      T2 pop(); // block cus size 0; push(value);
+    //                  or it could be pushed leading to a block until data is popped from it
+    //                      T2 pop();
+    //                      T1 push(); // size 3, capacity 3
+    //                      T2 push(value); // block cus size == capacity
+    if (buf->size() == buf->capacity()) buf->pop();
+    buf->push(value);
+}
+
+void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<int> * buf, const int & value) {
+    size_t size = buf->size();
+    // reverse the queue    1,2,3 > reverse > 3,2,1
+    rigtorp::SPSCQueue<int> reversed(size);
+    // push to it           3,2,1 > push 5 > 2,1,5
+    // reverse it again     2,1,5 > reverse > 5,1,2
 }
 
 int UndoRedoCircularBuffer::pop_front(rigtorp::SPSCQueue<int> * buf) {
