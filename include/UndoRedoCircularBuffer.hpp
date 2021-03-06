@@ -7,12 +7,18 @@
 class UndoRedoCircularBuffer {
 public:
 
+    bool DEBUG_COMMANDS;
+    bool DEBUG_ACTIONS;
+    bool DEBUG_STATE;
+
     rigtorp::SPSCQueue<int> * main;
     rigtorp::SPSCQueue<int> * undo_;
     rigtorp::SPSCQueue<int> * redo_;
 
     static const int ADD;
+    static const int ADD_WRAPPED;
     static const int REMOVE;
+    static const int REMOVE_WRAPPED;
 
     /**
      * @param size the buffer capacity
@@ -35,6 +41,18 @@ public:
     ~UndoRedoCircularBuffer();
 
     int size() const;
+
+    static void push_front(rigtorp::SPSCQueue<int> * buf, const int & value);
+
+    int front() const;
+    int back() const;
+    int pop_front() const;
+    int pop_back() const;
+
+    static int front(rigtorp::SPSCQueue<int> * buf);
+    static int back(rigtorp::SPSCQueue<int> * buf);
+    static int pop_front(rigtorp::SPSCQueue<int> * buf) ;
+    static int pop_back(rigtorp::SPSCQueue<int> * buf) ;
 
     /**
      * when adding an item:
@@ -74,5 +92,14 @@ public:
     std::string toString(rigtorp::SPSCQueue<int> * buf) const;
 
     std::string toString() const;
+
+    struct Command {
+        int cmd, data;
+        Command(int c, int d);
+    };
+
+    static Command push_front(rigtorp::SPSCQueue<int> *buf, int cmd, int data);
+
+    static Command pop_back_(rigtorp::SPSCQueue<int> *buf);
 };
 #endif // UNDO_REDO_CIRCULAR_BUFFER_H
