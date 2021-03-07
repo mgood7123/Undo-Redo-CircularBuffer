@@ -260,7 +260,7 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<URCB_T> * buf) c
             if (ptr != nullptr) {
                 val = *ptr;
                 buf->pop();
-                string += format("%23d", val);
+                string += format("%23ld", val);
             } else {
                 string += format("%23c", '_');
             }
@@ -279,7 +279,7 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<URCB_T> * buf) c
                 command_value = *buf->front();
                 buf->pop();
                 std::string cmd = cmdToString(command_cmd);
-                string += format("%4s{ %11s,%3d }", " ", cmd.data(), command_value);
+                string += format("%4s{ %11s,%3ld }", " ", cmd.data(), command_value);
             } else {
                 string += format("%22s_", " ");
             }
