@@ -26,15 +26,15 @@ public:
     UndoRedoCircularBuffer(int size);
 
     /**
-     * @param size the buffer capacity, this is internally increased by 1
-     * @param undo_redo_size the undo and redo buffer capacity, this is internally increased by 1
+     * @param size the buffer capacity
+     * @param undo_redo_size the undo and redo buffer capacity
      */
     UndoRedoCircularBuffer(int size, int undo_redo_size);
 
     /**
-     * @param size the buffer capacity, this is internally increased by 1
-     * @param undo_size the undo buffer capacity, this is internally increased by 1
-     * @param redo_size the redo buffer capacity, this is internally increased by 1
+     * @param size the buffer capacity
+     * @param undo_size the undo buffer capacity
+     * @param redo_size the redo buffer capacity
      */
     UndoRedoCircularBuffer(int size, int undo_size, int redo_size);
 
