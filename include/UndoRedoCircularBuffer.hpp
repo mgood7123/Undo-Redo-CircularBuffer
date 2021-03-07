@@ -4,56 +4,58 @@
 #ifndef UNDO_REDO_CIRCULAR_BUFFER_H
 #define UNDO_REDO_CIRCULAR_BUFFER_H
 
+
 class UndoRedoCircularBuffer {
 public:
+
+    typedef long URCB_T;
 
     bool DEBUG_COMMANDS;
     bool DEBUG_ACTIONS;
     bool DEBUG_STATE;
 
-    rigtorp::SPSCQueue<int> * main;
-    rigtorp::SPSCQueue<int> * undo_;
-    rigtorp::SPSCQueue<int> * redo_;
+    rigtorp::SPSCQueue<URCB_T> * main;
+    rigtorp::SPSCQueue<URCB_T> * undo_;
+    rigtorp::SPSCQueue<URCB_T> * redo_;
 
-    static const int ADD;
-    static const int ADD_WRAPPED;
-    static const int REMOVE;
-    static const int REMOVE_WRAPPED;
+    static const URCB_T ADD;
+    static const URCB_T ADD_WRAPPED;
+    static const URCB_T REMOVE;
 
     /**
      * @param size the buffer capacity
      */
-    UndoRedoCircularBuffer(int size);
+    UndoRedoCircularBuffer(size_t size);
 
     /**
      * @param size the buffer capacity
      * @param undo_redo_size the undo and redo buffer capacity
      */
-    UndoRedoCircularBuffer(int size, int undo_redo_size);
+    UndoRedoCircularBuffer(size_t size, size_t undo_redo_size);
 
     /**
      * @param size the buffer capacity
      * @param undo_size the undo buffer capacity
      * @param redo_size the redo buffer capacity
      */
-    UndoRedoCircularBuffer(int size, int undo_size, int redo_size);
+    UndoRedoCircularBuffer(size_t size, size_t undo_size, size_t redo_size);
 
     ~UndoRedoCircularBuffer();
 
-    int size() const;
+    size_t size() const;
 
-    static void push_front(rigtorp::SPSCQueue<int> * buf, const int & value);
-    static void push_back(rigtorp::SPSCQueue<int> * buf, const int & value);
+    static void push_front(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value);
+    static void push_back(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value);
 
-    int front() const;
-    int back() const;
-    int pop_front() const;
-    int pop_back() const;
+    URCB_T front() const;
+    URCB_T back() const;
+    URCB_T pop_front() const;
+    URCB_T pop_back() const;
 
-    static int front(rigtorp::SPSCQueue<int> * buf);
-    static int back(rigtorp::SPSCQueue<int> * buf);
-    static int pop_front(rigtorp::SPSCQueue<int> * buf) ;
-    static int pop_back(rigtorp::SPSCQueue<int> * buf) ;
+    static URCB_T front(rigtorp::SPSCQueue<URCB_T> * buf);
+    static URCB_T back(rigtorp::SPSCQueue<URCB_T> * buf);
+    static URCB_T pop_front(rigtorp::SPSCQueue<URCB_T> * buf) ;
+    static URCB_T pop_back(rigtorp::SPSCQueue<URCB_T> * buf) ;
 
     /**
      * when adding an item:
@@ -65,7 +67,7 @@ public:
      *        and you need to "remove" an item to make room
      * @param n value
      */
-    void add(int n) const;
+    void add(URCB_T n) const;
 
     void undo() const;
     void redo() const;
@@ -76,7 +78,7 @@ public:
      *    and so attempting to vectorue an item would be an error
      * 2. get the item pointed to by head and return it to the caller
      */
-    int peek() const;
+    URCB_T peek() const;
 
     /**
      * when removing an item:
@@ -86,21 +88,21 @@ public:
      * 3. increment head by one and modulo it with the buffer size,
      *    advances it to the next item in the queue
      */
-    int remove() const;
+    URCB_T remove() const;
 
     template<typename ... Args> std::string format( const std::string & format, Args ... args ) const;
 
-    std::string toString(rigtorp::SPSCQueue<int> * buf) const;
+    std::string toString(rigtorp::SPSCQueue<URCB_T> * buf) const;
 
     std::string toString() const;
 
     struct Command {
         int cmd, data;
-        Command(int c, int d);
+        Command(URCB_T c, URCB_T d);
     };
 
-    static Command push_front(rigtorp::SPSCQueue<int> *buf, int cmd, int data);
+    static Command push_front(rigtorp::SPSCQueue<URCB_T> *buf, URCB_T cmd, URCB_T data);
 
-    static Command pop_back_(rigtorp::SPSCQueue<int> *buf);
+    static Command pop_back_(rigtorp::SPSCQueue<URCB_T> *buf);
 };
 #endif // UNDO_REDO_CIRCULAR_BUFFER_H

@@ -7,21 +7,46 @@ public class UndoRedoCircularBuffer {
 
     long instance;
 
-    native long createNativeInstance1(int size);
-    native long createNativeInstance2(int size, int undo_redo_size);
-    native long createNativeInstance3(int size, int undo_size, int redo_size);
+    native long createNativeInstance1(long size);
+    native long createNativeInstance2(long size, long undo_redo_size);
+    native long createNativeInstance3(long size, long undo_size, long redo_size);
+    native void add(long instance, long value);
+    native long peek(long instance);
+    native long remove(long instance);
+    native void undo(long instance);
+    native void redo(long instance);
     native String toString(long instance);
 
-    public UndoRedoCircularBuffer(int size) {
+    public UndoRedoCircularBuffer(long size) {
         instance = createNativeInstance1(size);
     }
 
-    UndoRedoCircularBuffer(int size, int undo_redo_size) {
+    UndoRedoCircularBuffer(long size, long undo_redo_size) {
         instance = createNativeInstance2(size, undo_redo_size);
     }
 
-    UndoRedoCircularBuffer(int size, int undo_size, int redo_size) {
+    UndoRedoCircularBuffer(long size, long undo_size, long redo_size) {
         instance = createNativeInstance3(size, undo_size, redo_size);
+    }
+
+    void add(long value) {
+        add(instance, value);
+    }
+
+    long peek() {
+        return peek(instance);
+    }
+
+    long remove() {
+        return remove(instance);
+    }
+
+    void undo() {
+        undo(instance);
+    }
+
+    void redo() {
+        redo(instance);
     }
 
     @Override

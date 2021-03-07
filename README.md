@@ -10,20 +10,20 @@ and with customizable buffer sizes
 /**
  * @param size the buffer capacity
  */
-UndoRedoCircularBuffer(int size);
+UndoRedoCircularBuffer(size_t size);
 
 /**
  * @param size the buffer capacity
  * @param undo_redo_size the undo and redo buffer capacity
  */
-UndoRedoCircularBuffer(int size, int undo_redo_size);
+UndoRedoCircularBuffer(size_t size, size_t undo_redo_size);
 
 /**
  * @param size the buffer capacity
  * @param undo_size the undo buffer capacity
  * @param redo_size the redo buffer capacity
  */
-UndoRedoCircularBuffer(int size, int undo_size, int redo_size);
+UndoRedoCircularBuffer(size_t size, size_t undo_size, size_t redo_size);
 ```
 
 # cloning

@@ -3,9 +3,9 @@
 #include <string>
 #include <stack> // to reverse queue
 
-const int UndoRedoCircularBuffer::ADD = 1;
-const int UndoRedoCircularBuffer::ADD_WRAPPED = 2;
-const int UndoRedoCircularBuffer::REMOVE = 3;
+const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::ADD = 1;
+const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::ADD_WRAPPED = 2;
+const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::REMOVE = 3;
 
 std::string cmdToString(int cmd) {
     switch (cmd) {
@@ -16,14 +16,14 @@ std::string cmdToString(int cmd) {
     }
 }
 
-UndoRedoCircularBuffer::UndoRedoCircularBuffer(int size) : UndoRedoCircularBuffer(size, size, size) {}
+UndoRedoCircularBuffer::UndoRedoCircularBuffer(size_t size) : UndoRedoCircularBuffer(size, size, size) {}
 
-UndoRedoCircularBuffer::UndoRedoCircularBuffer(int size, int undo_redo_size) : UndoRedoCircularBuffer(size, undo_redo_size, undo_redo_size) {}
+UndoRedoCircularBuffer::UndoRedoCircularBuffer(size_t size, size_t undo_redo_size) : UndoRedoCircularBuffer(size, undo_redo_size, undo_redo_size) {}
 
-UndoRedoCircularBuffer::UndoRedoCircularBuffer(int size, int undo_size, int redo_size) :
-    main(new rigtorp::SPSCQueue<int>(size)),
-    undo_(new rigtorp::SPSCQueue<int>(undo_size*2)),
-    redo_(new rigtorp::SPSCQueue<int>(redo_size*2)),
+UndoRedoCircularBuffer::UndoRedoCircularBuffer(size_t size, size_t undo_size, size_t redo_size) :
+    main(new rigtorp::SPSCQueue<URCB_T>(size)),
+    undo_(new rigtorp::SPSCQueue<URCB_T>(undo_size*2)),
+    redo_(new rigtorp::SPSCQueue<URCB_T>(redo_size*2)),
     DEBUG_COMMANDS(true),
     DEBUG_ACTIONS(false),
     DEBUG_STATE(false)
@@ -35,27 +35,27 @@ UndoRedoCircularBuffer::~UndoRedoCircularBuffer() {
     delete redo_;
 }
 
-int UndoRedoCircularBuffer::size() const {
+size_t UndoRedoCircularBuffer::size() const {
     return main->size();
 }
 
-int UndoRedoCircularBuffer::front() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::front() const {
     return front(main);
 }
 
-int UndoRedoCircularBuffer::back() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::back() const {
     return back(main);
 }
 
-int UndoRedoCircularBuffer::pop_front() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_front() const {
     return pop_front(main);
 }
 
-int UndoRedoCircularBuffer::pop_back() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_back() const {
     return pop_back(main);
 }
 
-void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, const int & value) {
+void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
     // IMPORTANT: NOT THREAD SAFE -
     //                  it could be popped leading to a block until data is pushed to it
     //                      T1 pop(); // size 0
@@ -68,8 +68,8 @@ void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, const int
     buf->push(value);
 }
 
-void reverse(rigtorp::SPSCQueue<int> * buf) {
-    std::deque<int> Deque;
+void reverse(rigtorp::SPSCQueue<UndoRedoCircularBuffer::URCB_T> * buf) {
+    std::deque<UndoRedoCircularBuffer::URCB_T> Deque;
     while (!buf->empty()) {
         Deque.push_front(*buf->front());
         buf->pop();
@@ -80,7 +80,7 @@ void reverse(rigtorp::SPSCQueue<int> * buf) {
     }
 }
 
-void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<int> * buf, const int & value) {
+void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
     // reverse the queue    1,2,3 > reverse > 3,2,1
     reverse(buf);
     // push to it           3,2,1 > push 5 > 2,1,5
@@ -89,71 +89,71 @@ void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<int> * buf, const int 
     reverse(buf);
 }
 
-int UndoRedoCircularBuffer::pop_front(rigtorp::SPSCQueue<int> * buf) {
-    int * value = buf->front();
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_front(rigtorp::SPSCQueue<URCB_T> * buf) {
+    URCB_T * value = buf->front();
     buf->pop();
     return *value;
 }
 
-int UndoRedoCircularBuffer::pop_back(rigtorp::SPSCQueue<int> * buf) {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_back(rigtorp::SPSCQueue<URCB_T> * buf) {
     size_t size = buf->size();
 
     if (size == 1) return pop_front(buf);
 
-    rigtorp::SPSCQueue<int> tmp(size);
-    int back = 0;
-    for (int i = 0; i < size; i++) {
-        int * value = buf->front();
+    rigtorp::SPSCQueue<URCB_T> tmp(size);
+    URCB_T back = 0;
+    for (size_t i = 0; i < size; i++) {
+        URCB_T * value = buf->front();
         if (i == size-1) back = *value;
         tmp.push(*value);
         buf->pop();
     }
-    for (int i = 0; i < size-1; i++) {
+    for (size_t i = 0; i < size-1; i++) {
         buf->push(*tmp.front());
         tmp.pop();
     }
     return back;
 }
 
-int UndoRedoCircularBuffer::front(rigtorp::SPSCQueue<int> * buf) {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::front(rigtorp::SPSCQueue<URCB_T> * buf) {
     return *buf->front();
 }
 
-int UndoRedoCircularBuffer::back(rigtorp::SPSCQueue<int> * buf) {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::back(rigtorp::SPSCQueue<URCB_T> * buf) {
     size_t size = buf->size();
-    rigtorp::SPSCQueue<int> tmp(size);
-    int back = 0;
-    for (int i = 0; i < size; i++) {
-        int value = *buf->front();
+    rigtorp::SPSCQueue<URCB_T> tmp(size);
+    URCB_T back = 0;
+    for (size_t i = 0; i < size; i++) {
+        URCB_T value = *buf->front();
         if (i == size-1) back = value;
         tmp.push(value);
         buf->pop();
     }
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         buf->push(*tmp.front());
         tmp.pop();
     }
     return back;
 }
 
-UndoRedoCircularBuffer::Command::Command(int c, int d) {
+UndoRedoCircularBuffer::Command::Command(URCB_T c, URCB_T d) {
     cmd = c;
     data = d;
 }
 
-UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, int cmd, int data) {
+UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<URCB_T> * buf, URCB_T cmd, URCB_T data) {
     push_front(buf, cmd);
     push_front(buf, data);
     return {cmd, data};
 }
 
-UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::pop_back_(rigtorp::SPSCQueue<int> * buf) {
-    int data = pop_back(buf);
-    int cmd = pop_back(buf);
+UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::pop_back_(rigtorp::SPSCQueue<URCB_T> * buf) {
+    URCB_T data = pop_back(buf);
+    URCB_T cmd = pop_back(buf);
     return {cmd, data};
 }
 
-void UndoRedoCircularBuffer::add(int n) const {
+void UndoRedoCircularBuffer::add(URCB_T n) const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "add " << n << std::endl;
     if (main->size() == main->capacity()) {
         push_front(undo_, ADD_WRAPPED, front());
@@ -163,11 +163,11 @@ void UndoRedoCircularBuffer::add(int n) const {
     push_front(main, n);
 }
 
-int UndoRedoCircularBuffer::remove() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::remove() const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "remove" << std::endl;
-    int * ptr = main->front();
+    URCB_T * ptr = main->front();
     if (ptr == nullptr) return 0;
-    int r = *ptr;
+    URCB_T r = *ptr;
     main->pop();
     push_front(undo_, REMOVE);
     push_front(undo_, r);
@@ -185,7 +185,7 @@ void UndoRedoCircularBuffer::undo() const {
         }
         case ADD_WRAPPED: {
             LOG_MAGNUM_DEBUG << "undo ADD_WRAPPED" << std::endl;
-            int value = back(main);
+            URCB_T value = back(main);
             push_back(main, command.data);
             push_front(redo_, command.cmd, value);
             break;
@@ -230,9 +230,9 @@ void UndoRedoCircularBuffer::redo() const {
     }
 }
 
-int UndoRedoCircularBuffer::peek() const {
+UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::peek() const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "peek" << std::endl;
-    int * ptr = main->front();
+    URCB_T * ptr = main->front();
     if (ptr == nullptr) return 0;
     return *ptr;
 }
@@ -248,14 +248,14 @@ std::string UndoRedoCircularBuffer::format(const std::string &format, Args... ar
     return std::string( buf.get(), buf.get() + size - 1 );
 }
 
-std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<int> * buf) const {
+std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<URCB_T> * buf) const {
     size_t size = buf->capacity();
-    rigtorp::SPSCQueue<int> tmp(size*2);
+    rigtorp::SPSCQueue<URCB_T> tmp(size*2);
     std::string string = format("(size = %02zu, capacity = %02zu)", buf->size(), size);
     if (buf == main) {
-        for (int i = 0; i < size; i++) {
-            int *ptr = buf->front();
-            int val = 0;
+        for (size_t i = 0; i < size; i++) {
+            URCB_T *ptr = buf->front();
+            URCB_T val = 0;
             tmp.push(ptr != nullptr);
             if (ptr != nullptr) {
                 val = *ptr;
@@ -268,10 +268,10 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<int> * buf) cons
             tmp.push(val);
         }
     } else {
-        for (int i = 0; i < size; i += 2) {
-            int *command = buf->front();
-            int command_cmd = 0;
-            int command_value = 0;
+        for (size_t i = 0; i < size; i += 2) {
+            URCB_T *command = buf->front();
+            URCB_T command_cmd = 0;
+            URCB_T command_value = 0;
             tmp.push(command != nullptr);
             if (command != nullptr) {
                 command_cmd = *command;
@@ -289,11 +289,11 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<int> * buf) cons
             if (i+2 != size) string += ",";
         }
     }
-    for (int i = 0; i < size; i++) {
-        int shouldPush = *tmp.front();
+    for (size_t i = 0; i < size; i++) {
+        URCB_T shouldPush = *tmp.front();
         tmp.pop();
-        int * ptr = tmp.front();
-        int val = 0;
+        URCB_T * ptr = tmp.front();
+        URCB_T val = 0;
         if (ptr != nullptr) {
             val = *ptr;
             tmp.pop();
