@@ -6,14 +6,12 @@
 const int UndoRedoCircularBuffer::ADD = 1;
 const int UndoRedoCircularBuffer::ADD_WRAPPED = 2;
 const int UndoRedoCircularBuffer::REMOVE = 3;
-const int UndoRedoCircularBuffer::REMOVE_WRAPPED = 4;
 
 std::string cmdToString(int cmd) {
     switch (cmd) {
         case UndoRedoCircularBuffer::ADD: return "ADD";
         case UndoRedoCircularBuffer::ADD_WRAPPED: return "ADD_WRAPPED";
         case UndoRedoCircularBuffer::REMOVE: return "REMOVE";
-        case UndoRedoCircularBuffer::REMOVE_WRAPPED: return "REMOVE_WRAPPED";
         default: return "UNKNOWN";
     }
 }
@@ -193,7 +191,9 @@ void UndoRedoCircularBuffer::undo() const {
             break;
         }
         case REMOVE: {
-            push_front(main, push_front(redo_, command.cmd, pop_back(main)).data);
+            LOG_MAGNUM_DEBUG << "undo REMOVE" << std::endl;
+            push_back(main, command.data);
+            push_front(redo_, command.cmd, command.data);
             break;
         }
         default: {
@@ -219,6 +219,7 @@ void UndoRedoCircularBuffer::redo() const {
             break;
         }
         case REMOVE: {
+            LOG_MAGNUM_DEBUG << "redo REMOVE" << std::endl;
             push_front(undo_, command.cmd, command.data);
             main->pop();
             break;
@@ -259,9 +260,9 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<int> * buf) cons
             if (ptr != nullptr) {
                 val = *ptr;
                 buf->pop();
-                string += format("%26d", val);
+                string += format("%23d", val);
             } else {
-                string += format("%26c", '_');
+                string += format("%23c", '_');
             }
             if (i+1 != size) string += ",";
             tmp.push(val);
@@ -278,9 +279,9 @@ std::string UndoRedoCircularBuffer::toString(rigtorp::SPSCQueue<int> * buf) cons
                 command_value = *buf->front();
                 buf->pop();
                 std::string cmd = cmdToString(command_cmd);
-                string += format("%4s{ %14s,%3d }", " ", cmd.data(), command_value);
+                string += format("%4s{ %11s,%3d }", " ", cmd.data(), command_value);
             } else {
-                string += format("%25s_", " ");
+                string += format("%22s_", " ");
             }
             tmp.push(command_cmd);
             tmp.push(command != nullptr);
