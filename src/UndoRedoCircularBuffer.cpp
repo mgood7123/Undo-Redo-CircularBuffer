@@ -1,6 +1,7 @@
 #include <UndoRedoCircularBuffer.hpp>
 #include <Log.hpp>
 #include <string>
+#include <stack> // to reverse queue
 
 const int UndoRedoCircularBuffer::ADD = 1;
 const int UndoRedoCircularBuffer::ADD_WRAPPED = 2;
@@ -69,12 +70,25 @@ void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, const int
     buf->push(value);
 }
 
+void reverse(rigtorp::SPSCQueue<int> * buf) {
+    std::deque<int> Deque;
+    while (!buf->empty()) {
+        Deque.push_front(*buf->front());
+        buf->pop();
+    }
+    while (!Deque.empty()) {
+        buf->push(Deque.front());
+        Deque.pop_front();
+    }
+}
+
 void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<int> * buf, const int & value) {
-    size_t size = buf->size();
     // reverse the queue    1,2,3 > reverse > 3,2,1
-    rigtorp::SPSCQueue<int> reversed(size);
+    reverse(buf);
     // push to it           3,2,1 > push 5 > 2,1,5
+    push_front(buf, value);
     // reverse it again     2,1,5 > reverse > 5,1,2
+    reverse(buf);
 }
 
 int UndoRedoCircularBuffer::pop_front(rigtorp::SPSCQueue<int> * buf) {
@@ -133,7 +147,7 @@ void UndoRedoCircularBuffer::add(int n) const {
         LOG_MAGNUM_DEBUG_FUNCTION(undo_->capacity());
     }
     if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "add - pushing front undo command and value" << std::endl;
-//    if (main->size() == main->capacity()) {
+    if (main->size() == main->capacity()) {
         /*
 UNDO: {ADD_WRAPPED 1}, {ADD 5}
 
@@ -145,10 +159,10 @@ undo:
     push 1 to left side
     no need to process add 5 since it just pops main
         */
-//        push_front(undo_, ADD_WRAPPED, front());
-//    } else {
+        push_front(undo_, ADD_WRAPPED, front());
+    } else {
         push_front(undo_, ADD, n);
-//    }
+    }
     if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "add - pushing front main value" << std::endl;
     push_front(main, n);
 }
@@ -172,38 +186,6 @@ UndoRedoCircularBuffer::Command::Command(int c, int d) {
     data = d;
 }
 
-/*
-psuedo-code
-undo() {
-    if (undo is empty) return
-    Command command = pop_front(undo);
-    switch(command.cmd) {
-        case COMMANDS.ADD:
-            push_front(redo_, command.cmd, pop_back(main));
-            break;
-        case COMMANDS.REMOVE:
-            break;
-        default:
-            fatal_error("UNKNOWN COMMAND");
-    }
-}
-
-redo() {
-    if (redo is empty) return
-    Command command = pop_front(redo);
-    push_front(undo_, command.cmd, command.data);
-    switch(command.cmd) {
-        case COMMANDS.ADD:
-            push_front(main, command.data);
-            break;
-        case COMMANDS.REMOVE:
-            break;
-        default:
-            fatal_error("UNKNOWN COMMAND");
-    }
-}
- */
-
 UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<int> * buf, int cmd, int data) {
     push_front(buf, cmd);
     push_front(buf, data);
@@ -216,53 +198,6 @@ UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::pop_back_(rigtorp::SPSCQ
     return {cmd, data};
 }
 
-/*
-add 1
-add 2
-MAIN: (size = 2, capacity = 3)                 1,                 2,                 _
-UNDO: (size = 4, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },                 _,                 _
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-undo ADD
-MAIN: (size = 1, capacity = 3)                 1,                 _,                 _
-UNDO: (size = 2, capacity = 8)    {    ADD,  1 },                 _,                 _,                 _
-REDO: (size = 2, capacity = 8)    {    ADD,  2 },                 _,                 _,                 _
-redo ADD
-MAIN: (size = 2, capacity = 3)                 1,                 2,                 _
-UNDO: (size = 4, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },                 _,                 _
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-undo ADD
-MAIN: (size = 1, capacity = 3)                 1,                 _,                 _
-UNDO: (size = 2, capacity = 8)    {    ADD,  1 },                 _,                 _,                 _
-REDO: (size = 2, capacity = 8)    {    ADD,  2 },                 _,                 _,                 _
-redo ADD
-MAIN: (size = 2, capacity = 3)                 1,                 2,                 _
-UNDO: (size = 4, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },                 _,                 _
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-add 3
-add 4
-MAIN: (size = 3, capacity = 3)                 2,                 3,                 4
-UNDO: (size = 8, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },    {    ADD,  3 },    {    ADD,  4 }
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-undo ADD
-MAIN: (size = 2, capacity = 3)                 2,                 3,                 _
-UNDO: (size = 6, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },    {    ADD,  3 },                 _
-REDO: (size = 2, capacity = 8)    {    ADD,  4 },                 _,                 _,                 _
-redo ADD
-MAIN: (size = 3, capacity = 3)                 2,                 3,                 4
-UNDO: (size = 8, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },    {    ADD,  3 },    {    ADD,  4 }
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-undo ADD
-MAIN: (size = 2, capacity = 3)                 2,                 3,                 _
-UNDO: (size = 6, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },    {    ADD,  3 },                 _
-REDO: (size = 2, capacity = 8)    {    ADD,  4 },                 _,                 _,                 _
-redo ADD
-MAIN: (size = 3, capacity = 3)                 2,                 3,                 4
-UNDO: (size = 8, capacity = 8)    {    ADD,  1 },    {    ADD,  2 },    {    ADD,  3 },    {    ADD,  4 }
-REDO: (size = 0, capacity = 8)                 _,                 _,                 _,                 _
-*/
-
-// https://gist.github.com/4a73bcdd3a6bbf6c3790ff7529e0c069 how do i handle undoing a FIFO full add? eg 123 > 234 > 345 > undo > 234 > undo > 123, eg stack {1,2,3,4,5} front == 1, back == 5
-
 void UndoRedoCircularBuffer::undo() const {
     if (undo_->empty()) return;
     Command command = pop_back_(undo_);
@@ -270,6 +205,13 @@ void UndoRedoCircularBuffer::undo() const {
         case ADD: {
             LOG_MAGNUM_DEBUG << "undo ADD" << std::endl;
             push_front(redo_, command.cmd, pop_back(main));
+            break;
+        }
+        case ADD_WRAPPED: {
+            LOG_MAGNUM_DEBUG << "undo ADD_WRAPPED" << std::endl;
+            int value = back(main);
+            push_back(main, command.data);
+            push_front(redo_, command.cmd, value);
             break;
         }
         case REMOVE: {
@@ -286,15 +228,22 @@ void UndoRedoCircularBuffer::undo() const {
 void UndoRedoCircularBuffer::redo() const {
     if (redo_->empty()) return;
     Command command = pop_back_(redo_);
-    push_front(undo_, command.cmd, command.data);
     switch (command.cmd) {
         case ADD: {
             LOG_MAGNUM_DEBUG << "redo ADD" << std::endl;
+            push_front(undo_, command.cmd, command.data);
+            push_front(main, command.data);
+            break;
+        }
+        case ADD_WRAPPED: {
+            LOG_MAGNUM_DEBUG << "redo ADD_WRAPPED" << std::endl;
+            push_front(undo_, command.cmd, front(main));
             push_front(main, command.data);
             break;
         }
         case REMOVE: {
             LOG_MAGNUM_DEBUG << "redo REMOVE" << std::endl;
+            push_front(undo_, command.cmd, command.data);
             main->pop();
             break;
         }

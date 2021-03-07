@@ -111,6 +111,27 @@ TEST(CircularBuffer_Core, undo_3) {
     LOG_MAGNUM_DEBUG << a.toString() << std::endl;
     a.add(5);
     LOG_MAGNUM_DEBUG << a.toString() << std::endl;
-//    a.push_back(a.main, 1);
-//    LOG_MAGNUM_DEBUG << a.toString() << std::endl;
+    a.undo();
+    LOG_MAGNUM_DEBUG << a.toString() << std::endl;
+    a.redo();
+    LOG_MAGNUM_DEBUG << a.toString() << std::endl;
+}
+
+TEST(CircularBuffer_Core, undo_4) {
+    UndoRedoCircularBuffer a(3, 12);
+    a.add(1);
+    a.add(2);
+    a.add(3);
+    a.add(4);
+    a.add(5);
+    LOG_MAGNUM_DEBUG << a.toString() << std::endl;
+    a.undo();
+    a.redo();
+    a.undo();
+    a.undo();
+    a.undo();
+    a.redo();
+    a.redo();
+    a.redo();
+    LOG_MAGNUM_DEBUG << a.toString() << std::endl;
 }
