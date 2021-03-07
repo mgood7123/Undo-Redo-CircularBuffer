@@ -118,7 +118,7 @@ TEST(CircularBuffer_Core, undo_3) {
 }
 
 TEST(CircularBuffer_Core, undo_4) {
-    UndoRedoCircularBuffer a(3, 12);
+    UndoRedoCircularBuffer a(3, 5);
     a.add(1);
     a.add(2);
     a.add(3);

@@ -138,49 +138,6 @@ int UndoRedoCircularBuffer::back(rigtorp::SPSCQueue<int> * buf) {
     return back;
 }
 
-
-void UndoRedoCircularBuffer::add(int n) const {
-    if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "add " << n << std::endl;
-    if (DEBUG_STATE) {
-        LOG_MAGNUM_DEBUG << toString() << std::endl;
-        LOG_MAGNUM_DEBUG_FUNCTION(undo_->size());
-        LOG_MAGNUM_DEBUG_FUNCTION(undo_->capacity());
-    }
-    if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "add - pushing front undo command and value" << std::endl;
-    if (main->size() == main->capacity()) {
-        /*
-UNDO: {ADD_WRAPPED 1}, {ADD 5}
-
-and assuming
-
-MAIN: 2,3,5
-
-undo:
-    push 1 to left side
-    no need to process add 5 since it just pops main
-        */
-        push_front(undo_, ADD_WRAPPED, front());
-    } else {
-        push_front(undo_, ADD, n);
-    }
-    if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "add - pushing front main value" << std::endl;
-    push_front(main, n);
-}
-
-int UndoRedoCircularBuffer::remove() const {
-    if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "remove " << std::endl;
-    int * ptr = main->front();
-    if (ptr == nullptr) return 0;
-    int r = *ptr;
-    if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "remove - popping front main" << std::endl;
-    main->pop();
-    if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "remove - pushing front undo command" << std::endl;
-    push_front(undo_, REMOVE);
-    if (DEBUG_ACTIONS) LOG_MAGNUM_DEBUG << "remove - popping front undo value" << std::endl;
-    push_front(undo_, r);
-    return r;
-}
-
 UndoRedoCircularBuffer::Command::Command(int c, int d) {
     cmd = c;
     data = d;
@@ -196,6 +153,27 @@ UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::pop_back_(rigtorp::SPSCQ
     int data = pop_back(buf);
     int cmd = pop_back(buf);
     return {cmd, data};
+}
+
+void UndoRedoCircularBuffer::add(int n) const {
+    if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "add " << n << std::endl;
+    if (main->size() == main->capacity()) {
+        push_front(undo_, ADD_WRAPPED, front());
+    } else {
+        push_front(undo_, ADD, n);
+    }
+    push_front(main, n);
+}
+
+int UndoRedoCircularBuffer::remove() const {
+    if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "remove" << std::endl;
+    int * ptr = main->front();
+    if (ptr == nullptr) return 0;
+    int r = *ptr;
+    main->pop();
+    push_front(undo_, REMOVE);
+    push_front(undo_, r);
+    return r;
 }
 
 void UndoRedoCircularBuffer::undo() const {
@@ -215,7 +193,6 @@ void UndoRedoCircularBuffer::undo() const {
             break;
         }
         case REMOVE: {
-            LOG_MAGNUM_DEBUG << "undo REMOVE" << std::endl;
             push_front(main, push_front(redo_, command.cmd, pop_back(main)).data);
             break;
         }
@@ -242,7 +219,6 @@ void UndoRedoCircularBuffer::redo() const {
             break;
         }
         case REMOVE: {
-            LOG_MAGNUM_DEBUG << "redo REMOVE" << std::endl;
             push_front(undo_, command.cmd, command.data);
             main->pop();
             break;
