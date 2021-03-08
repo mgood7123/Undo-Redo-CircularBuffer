@@ -28,12 +28,14 @@ if(NOT COMMAND testBuilder_build)
     testBuilder_set_current_working_directory_to_default_binary_directory()
 endif()
 
-testBuilder_add_source(UndoRedoCircularBuffer
-        src/UndoRedoCircularBuffer.cpp
-        src/UndoRedoCircularBufferJNI.cpp
-)
+testBuilder_add_source(UndoRedoCircularBuffer src/Log.cpp)
+testBuilder_add_source(UndoRedoCircularBuffer src/JniHelpers.cpp)
+testBuilder_add_source(UndoRedoCircularBuffer src/UndoRedoCircularBuffer.cpp)
+testBuilder_add_source(UndoRedoCircularBuffer src/UndoRedoCircularBufferJNI.cpp)
 
-testBuilder_add_library(UndoRedoCircularBuffer Corrade::Containers Corrade::Utility)
+testBuilder_add_library(UndoRedoCircularBuffer Corrade::Containers)
+testBuilder_add_library(UndoRedoCircularBuffer Corrade::Utility)
+
 testBuilder_build_shared_library(UndoRedoCircularBuffer)
 
 # Prevent overriding the parent project's compiler/linker
