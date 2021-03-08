@@ -33,21 +33,45 @@ Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_size(JNIEnv *env, jobj
 }
 
 extern "C"
+JNIEXPORT jboolean JNICALL
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_empty(JNIEnv *env, jobject thiz, jlong instance) {
+    return get(instance)->empty();
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_front(JNIEnv *env, jobject thiz, jlong instance) {
+    return get(instance)->front();
+}
+
+extern "C"
+JNIEXPORT jlong JNICALL
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_back(JNIEnv *env, jobject thiz, jlong instance) {
+    return get(instance)->back();
+}
+
+extern "C"
 JNIEXPORT void JNICALL
-Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_add(JNIEnv *env, jobject thiz, jlong instance, jlong value) {
-    get(instance)->add(value);
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_push_front(JNIEnv *env, jobject thiz, jlong instance, jlong value) {
+    get(instance)->push_front(value);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_push_back(JNIEnv *env, jobject thiz, jlong instance, jlong value) {
+    get(instance)->push_back(value);
 }
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_peek(JNIEnv *env, jobject thiz, jlong instance) {
-    return get(instance)->peek();
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_pop_front(JNIEnv *env, jobject thiz, jlong instance) {
+    return get(instance)->pop_front();
 }
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_remove(JNIEnv *env, jobject thiz, jlong instance) {
-    return get(instance)->remove();
+Java_smallville7123_circularbuffer_UndoRedoCircularBuffer_pop_back(JNIEnv *env, jobject thiz, jlong instance) {
+    return get(instance)->pop_back();
 }
 
 extern "C"

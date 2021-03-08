@@ -18,9 +18,13 @@ public:
     rigtorp::SPSCQueue<URCB_T> * undo_;
     rigtorp::SPSCQueue<URCB_T> * redo_;
 
-    static const URCB_T ADD;
-    static const URCB_T ADD_WRAPPED;
-    static const URCB_T REMOVE;
+    static const URCB_T PUSH_FRONT;
+    static const URCB_T PUSH_FRONT_WRAPPED;
+    static const URCB_T PUSH_BACK;
+    static const URCB_T PUSH_BACK_WRAPPED;
+
+    static const URCB_T POP_FRONT;
+    static const URCB_T POP_BACK;
 
     /**
      * @param size the buffer capacity
@@ -43,52 +47,26 @@ public:
     ~UndoRedoCircularBuffer();
 
     size_t size() const;
+    bool empty() const;
 
     static void push_front(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value);
     static void push_back(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value);
 
     URCB_T front() const;
     URCB_T back() const;
-    URCB_T pop_front() const;
-    URCB_T pop_back() const;
 
     static URCB_T front(rigtorp::SPSCQueue<URCB_T> * buf);
     static URCB_T back(rigtorp::SPSCQueue<URCB_T> * buf);
-    static URCB_T pop_front(rigtorp::SPSCQueue<URCB_T> * buf) ;
-    static URCB_T pop_back(rigtorp::SPSCQueue<URCB_T> * buf) ;
+    static URCB_T pop_front__(rigtorp::SPSCQueue<URCB_T> * buf);
+    static URCB_T pop_back__(rigtorp::SPSCQueue<URCB_T> * buf);
 
-    /**
-     * when adding an item:
-     * 1. insert the item into the position pointed to by "tail",
-     * 2. Advance tail forward by 1 and modulo it with the size of the buffer
-     * 3. if the tail pointer and the head pointer are the same,
-     *    advance the head pointer by 1
-     *        this means that your ring buffer was full,
-     *        and you need to "remove" an item to make room
-     * @param n value
-     */
-    void add(URCB_T n) const;
+    void push_front(URCB_T n) const;
+    void push_back(URCB_T n) const;
+    URCB_T pop_front() const;
+    URCB_T pop_back() const;
 
     void undo() const;
     void redo() const;
-
-    /**
-     * when peeking an item:
-     * 1. if head == tail, the ring buffer is empty,
-     *    and so attempting to vectorue an item would be an error
-     * 2. get the item pointed to by head and return it to the caller
-     */
-    URCB_T peek() const;
-
-    /**
-     * when removing an item:
-     * 1. if head == tail, the ring buffer is empty,
-     *    and so attempting to vectorue an item would be an error
-     * 2. get the item pointed to by head and return it to the caller
-     * 3. increment head by one and modulo it with the buffer size,
-     *    advances it to the next item in the queue
-     */
-    URCB_T remove() const;
 
     template<typename ... Args> std::string format( const std::string & format, Args ... args ) const;
 

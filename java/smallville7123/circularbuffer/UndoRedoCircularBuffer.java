@@ -10,6 +10,8 @@ public class UndoRedoCircularBuffer {
     native long createNativeInstance1(long size);
     native long createNativeInstance2(long size, long undo_redo_size);
     native long createNativeInstance3(long size, long undo_size, long redo_size);
+    native long size(long instance);
+    native boolean empty(long instance);
     native void add(long instance, long value);
     native long peek(long instance);
     native long remove(long instance);
@@ -27,6 +29,14 @@ public class UndoRedoCircularBuffer {
 
     public UndoRedoCircularBuffer(long size, long undo_size, long redo_size) {
         instance = createNativeInstance3(size, undo_size, redo_size);
+    }
+
+    public boolean empty() {
+        return empty(instance);
+    }
+
+    public long size() {
+        return size(instance);
     }
 
     public void add(long value) {
