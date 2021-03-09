@@ -12,9 +12,12 @@ public class UndoRedoCircularBuffer {
     native long createNativeInstance3(long size, long undo_size, long redo_size);
     native long size(long instance);
     native boolean empty(long instance);
-    native void add(long instance, long value);
-    native long peek(long instance);
-    native long remove(long instance);
+    native long front(long instance);
+    native long back(long instance);
+    native void push_front(long instance, long value);
+    native void push_back(long instance, long value);
+    native long pop_front(long instance);
+    native long pop_back(long instance);
     native void undo(long instance);
     native void redo(long instance);
     native String toString(long instance);
@@ -39,16 +42,28 @@ public class UndoRedoCircularBuffer {
         return size(instance);
     }
 
-    public void add(long value) {
-        add(instance, value);
+    public long front() {
+        return front(instance);
     }
 
-    public long peek() {
-        return peek(instance);
+    public long back() {
+        return back(instance);
     }
 
-    public long remove() {
-        return remove(instance);
+    public void push_front(long value) {
+        push_front(instance, value);
+    }
+
+    public void push_back(long value) {
+        push_back(instance, value);
+    }
+
+    public long pop_front() {
+        return pop_front(instance);
+    }
+
+    public long pop_back() {
+        return pop_back(instance);
     }
 
     public void undo() {
