@@ -11,6 +11,22 @@ const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::PUSH_BACK_WRAPPED =
 const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::POP_FRONT = 5;
 const UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::POP_BACK = 6;
 
+
+
+void UndoRedoCircularBuffer::debug(bool value) {
+    DEBUG_STATE = value;
+    DEBUG_ACTIONS = value;
+    DEBUG_COMMANDS = value;
+}
+
+void UndoRedoCircularBuffer::debug() {
+    debug(true);
+}
+
+void UndoRedoCircularBuffer::noDebug() {
+    debug(false);
+}
+
 std::string cmdToString(int cmd) {
     switch (cmd) {
         case UndoRedoCircularBuffer::PUSH_FRONT: return "PUSH FRONT";
@@ -32,7 +48,7 @@ UndoRedoCircularBuffer::UndoRedoCircularBuffer(size_t size, size_t undo_size, si
     main(new rigtorp::SPSCQueue<URCB_T>(size)),
     undo_(new rigtorp::SPSCQueue<URCB_T>(undo_size*2)),
     redo_(new rigtorp::SPSCQueue<URCB_T>(redo_size*2)),
-    DEBUG_COMMANDS(true),
+    DEBUG_COMMANDS(false),
     DEBUG_ACTIONS(false),
     DEBUG_STATE(false)
 {}
@@ -59,38 +75,31 @@ UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::back() const {
     return back(main);
 }
 
-void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
-    // IMPORTANT: NOT THREAD SAFE -
-    //                  it could be popped leading to a block until data is pushed to it
-    //                      T1 pop(); // size 0
-    //                      T2 pop(); // block cus size 0; push(value);
-    //                  or it could be pushed leading to a block until data is popped from it
-    //                      T2 pop();
-    //                      T1 push(); // size 3, capacity 3
-    //                      T2 push(value); // block cus size == capacity
-    if (buf->size() == buf->capacity()) buf->pop();
-    buf->push(value);
-}
-
 void reverse(rigtorp::SPSCQueue<UndoRedoCircularBuffer::URCB_T> * buf) {
     std::deque<UndoRedoCircularBuffer::URCB_T> Deque;
     while (!buf->empty()) {
-        Deque.push_front(*buf->front());
+        Deque.push_back(*buf->front());
         buf->pop();
     }
     while (!Deque.empty()) {
-        buf->push(Deque.front());
-        Deque.pop_front();
+        buf->push(Deque.back());
+        Deque.pop_back();
     }
 }
 
-void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
+void UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
     // reverse the queue    1,2,3 > reverse > 3,2,1
     reverse(buf);
     // push to it           3,2,1 > push 5 > 2,1,5
-    push_front(buf, value);
+    if (buf->size() == buf->capacity()) buf->pop();
+    buf->push(value);
     // reverse it again     2,1,5 > reverse > 5,1,2
     reverse(buf);
+}
+
+void UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<URCB_T> * buf, const URCB_T & value) {
+    if (buf->size() == buf->capacity()) buf->pop();
+    buf->push(value);
 }
 
 UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_front__(rigtorp::SPSCQueue<URCB_T> * buf) {
@@ -149,9 +158,17 @@ UndoRedoCircularBuffer::Command::Command(URCB_T c, URCB_T d) {
     data = d;
 }
 
-UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::push_front(rigtorp::SPSCQueue<URCB_T> * buf, URCB_T cmd, URCB_T data) {
-    push_front(buf, cmd);
-    push_front(buf, data);
+// TODO: rename functions
+// current behaviour:
+//     { q.push_back(1); q.push_back(2); }
+//     q == {1, 2}, front == 1, back == 2
+// STL behaviour:
+//     { q.push_back(1); q.push_back(2); }
+//     q == {2, 1}, front == 2, back == 1
+
+UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::push_back(rigtorp::SPSCQueue<URCB_T> * buf, URCB_T cmd, URCB_T data) {
+    push_back(buf, cmd);
+    push_back(buf, data);
     return {cmd, data};
 }
 
@@ -164,9 +181,14 @@ UndoRedoCircularBuffer::Command UndoRedoCircularBuffer::pop_back_(rigtorp::SPSCQ
 void UndoRedoCircularBuffer::push_front(URCB_T n) const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "push front " << n << std::endl;
     if (main->size() == main->capacity()) {
-        push_front(undo_, PUSH_FRONT_WRAPPED, front());
+        if (DEBUG_STATE) {
+            LOG_MAGNUM_DEBUG << toString() << std::endl;
+            LOG_MAGNUM_DEBUG_FUNCTION(front());
+            LOG_MAGNUM_DEBUG_FUNCTION(back());
+        }
+        push_back(undo_, PUSH_FRONT_WRAPPED, back());
     } else {
-        push_front(undo_, PUSH_FRONT, n);
+        push_back(undo_, PUSH_FRONT, n);
     }
     push_front(main, n);
 }
@@ -174,9 +196,14 @@ void UndoRedoCircularBuffer::push_front(URCB_T n) const {
 void UndoRedoCircularBuffer::push_back(URCB_T n) const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "push back " << n << std::endl;
     if (main->size() == main->capacity()) {
-        push_front(undo_, PUSH_BACK_WRAPPED, front());
+        if (DEBUG_STATE) {
+            LOG_MAGNUM_DEBUG << toString() << std::endl;
+            LOG_MAGNUM_DEBUG_FUNCTION(front());
+            LOG_MAGNUM_DEBUG_FUNCTION(back());
+        }
+        push_back(undo_, PUSH_BACK_WRAPPED, front());
     } else {
-        push_front(undo_, PUSH_BACK, n);
+        push_back(undo_, PUSH_BACK, n);
     }
     push_back(main, n);
 }
@@ -185,8 +212,8 @@ UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_front() const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "pop front" << std::endl;
     if (main->empty()) return 0;
     URCB_T r = pop_front__(main);
-    push_front(undo_, POP_FRONT);
-    push_front(undo_, r);
+    push_back(undo_, POP_FRONT);
+    push_back(undo_, r);
     return r;
 }
 
@@ -194,65 +221,112 @@ UndoRedoCircularBuffer::URCB_T UndoRedoCircularBuffer::pop_back() const {
     if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "pop back" << std::endl;
     if (main->empty()) return 0;
     URCB_T r = pop_back__(main);
-    push_front(undo_, POP_BACK);
-    push_front(undo_, r);
+    push_back(undo_, POP_BACK);
+    push_back(undo_, r);
     return r;
 }
 
 void UndoRedoCircularBuffer::undo() const {
+    if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
     if (undo_->empty()) return;
     Command command = pop_back_(undo_);
     std::string cmd = cmdToString(command.cmd);
     switch (command.cmd) {
         case PUSH_FRONT: {
-            LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
-            push_front(redo_, command.cmd, pop_back__(main));
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            push_back(redo_, command.cmd, pop_front__(main));
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         case PUSH_FRONT_WRAPPED: {
-            LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
-            URCB_T value = back(main);
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            URCB_T value = front(main);
             push_back(main, command.data);
-            push_front(redo_, command.cmd, value);
+            push_back(redo_, command.cmd, value);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case PUSH_BACK: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            push_back(redo_, command.cmd, pop_back__(main));
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case PUSH_BACK_WRAPPED: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            push_back(redo_, command.cmd, back(main));
+            push_front(main, command.data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         case POP_FRONT: {
-            LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
+            push_front(main, command.data);
+            push_back(redo_, command.cmd, command.data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case POP_BACK: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "undo " << cmd << std::endl;
             push_back(main, command.data);
-            push_front(redo_, command.cmd, command.data);
+            push_back(redo_, command.cmd, command.data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         default: {
-            LOG_MAGNUM_FATAL << "undo " << cmd << std::endl;
+            LOG_MAGNUM_FATAL << "UNIMPLEMENTED: undo " << cmd << std::endl;
         }
     }
 }
 
 void UndoRedoCircularBuffer::redo() const {
+    if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
     if (redo_->empty()) return;
     Command command = pop_back_(redo_);
     std::string cmd = cmdToString(command.cmd);
     switch (command.cmd) {
         case PUSH_FRONT: {
-            LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
-            push_front(undo_, command.cmd, command.data);
-            push_front(main, command.data);
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_front(main, push_back(undo_, command.cmd, command.data).data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         case PUSH_FRONT_WRAPPED: {
-            LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
-            push_front(undo_, command.cmd, front(main));
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_back(undo_, command.cmd, back(main));
             push_front(main, command.data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case PUSH_BACK: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_back(main, push_back(undo_, command.cmd, command.data).data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case PUSH_BACK_WRAPPED: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_back(undo_, command.cmd, front(main));
+            push_back(main, command.data);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         case POP_FRONT: {
-            LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
-            push_front(undo_, command.cmd, command.data);
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_back(undo_, command.cmd, command.data);
             main->pop();
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
+            break;
+        }
+        case POP_BACK: {
+            if (DEBUG_COMMANDS) LOG_MAGNUM_DEBUG << "redo " << cmd << std::endl;
+            push_back(undo_, command.cmd, command.data);
+            pop_back__(main);
+            if (DEBUG_STATE) LOG_MAGNUM_DEBUG << toString() << std::endl;
             break;
         }
         default: {
-            LOG_MAGNUM_FATAL << "redo " << cmd << std::endl;
+            LOG_MAGNUM_FATAL << "UNIMPLEMENTED: redo " << cmd << std::endl;
         }
     }
 }
@@ -327,4 +401,23 @@ std::string UndoRedoCircularBuffer::toString() const {
     return "MAIN: " + toString(main) +
            "\nUNDO: " + toString(undo_) +
            "\nREDO: " + toString(redo_);
+}
+
+MinimalArray<UndoRedoCircularBuffer::URCB_T>
+        UndoRedoCircularBuffer::toArray(rigtorp::SPSCQueue<URCB_T> * buf) {
+    MinimalArray<UndoRedoCircularBuffer::URCB_T> array(buf->size());
+    array.fill(0);
+    size_t length = array.size();
+    for (int i = 0; i < length; ++i) {
+        array[i] = *buf->front();
+        buf->pop();
+    }
+    for (int i = 0; i < length; ++i) {
+        buf->push(array[i]);
+    }
+    return std::move(array);
+}
+
+MinimalArray<UndoRedoCircularBuffer::URCB_T> UndoRedoCircularBuffer::toArray() const {
+    return std::move(toArray(main));
 }
